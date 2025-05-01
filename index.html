@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Task Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .task-card {
+            transition: all 0.3s ease;
+        }
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-blue-600 text-white p-4">
+            <div class="container mx-auto">
+                <h1 class="text-2xl font-bold">Project Task Tracker</h1>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="container mx-auto p-4">
+            <!-- Project Creation Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">Create New Project</h2>
+                <form id="projectForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="projectName" placeholder="Project Name" class="w-full p-2 border rounded">
+                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Create Project</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Task Creation Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">Add New Task</h2>
+                <form id="taskForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <select id="projectSelect" class="w-full p-2 border rounded">
+                            <option value="">Select Project</option>
+                        </select>
+                        <input type="text" id="taskName" placeholder="Task Name" class="w-full p-2 border rounded">
+                        <input type="date" id="plannedDate" class="w-full p-2 border rounded">
+                        <input type="date" id="targetDate" class="w-full p-2 border rounded">
+                        <select id="taskStatus" class="w-full p-2 border rounded">
+                            <option value="Pending">Pending</option>
+                            <option value="Processing">Processing</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Rework">Rework</option>
+                        </select>
+                        <div class="w-full">
+                            <input type="file" id="taskAttachments" multiple class="w-full p-2 border rounded" accept="image/*,.pdf,.doc,.docx">
+                        </div>
+                    </div>
+                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Add Task</button>
+                </form>
+            </div>
+
+            <!-- Tasks Display Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">Tasks</h2>
+                <div id="tasksList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Tasks will be dynamically added here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Sample data structure (In real implementation, this would be connected to Google Sheets)
+        let projects = [];
+        let tasks = [];
+
+        // Project Form Handler
+        document.getElementById('projectForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const projectName = document.getElementById('projectName').value;
+            if (projectName) {
+                projects.push({
+                    id: Date.now(),
+                    name: projectName
+                });
+                updateProjectSelect();
+                document.getElementById('projectName').value = '';
+                alert('Project created successfully!');
+            }
+        });
+
+        // Task Form Handler
+        document.getElementById('taskForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const projectId = document.getElementById('projectSelect').value;
+            const taskName = document.getElementById('taskName').value;
+            const plannedDate = document.getElementById('plannedDate').value;
+            const targetDate = document.getElementById('targetDate').value;
+            const status = document.getElementById('taskStatus').value;
+            const attachments = document.getElementById('taskAttachments').files;
+
+            if (projectId && taskName && plannedDate && targetDate) {
+                const attachmentsList = [];
+                for (let file of attachments) {
+                    attachmentsList.push({
+                        name: file.name,
+                        uploadDate: new Date().toISOString(),
+                        url: URL.createObjectURL(file) // In real implementation, this would be the Google Drive URL
+                    });
+                }
+
+                tasks.push({
+                    id: Date.now(),
+                    projectId: parseInt(projectId),
+                    name: taskName,
+                    plannedDate,
+                    targetDate,
+                    status,
+                    attachments: attachmentsList,
+                    createdAt: new Date().toISOString()
+                });
+
+                updateTasksList();
+                document.getElementById('taskForm').reset();
+                alert('Task added successfully!');
+            }
+        });
+
+        // Update Project Select Dropdown
+        function updateProjectSelect() {
+            const select = document.getElementById('projectSelect');
+            select.innerHTML = '<option value="">Select Project</option>';
+            projects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id;
+                option.textContent = project.name;
+                select.appendChild(option);
+            });
+        }
+
+        // Update Tasks List
+        function updateTasksList() {
+            const tasksList = document.getElementById('tasksList');
+            tasksList.innerHTML = '';
+            
+            tasks.forEach(task => {
+                const project = projects.find(p => p.id === task.projectId);
+                const taskCard = document.createElement('div');
+                taskCard.className = 'task-card bg-gray-50 rounded-lg p-4 border';
+                
+                const statusColorClass = {
+                    'Pending': 'bg-yellow-100 text-yellow-800',
+                    'Processing': 'bg-blue-100 text-blue-800',
+                    'Completed': 'bg-green-100 text-green-800',
+                    'Rework': 'bg-red-100 text-red-800'
+                };
+
+                taskCard.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-semibold">${task.name}</h3>
+                        <span class="px-2 py-1 rounded-full text-sm ${statusColorClass[task.status]}">${task.status}</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-2">${project.name}</p>
+                    <div class="text-sm text-gray-500 space-y-1">
+                        <p>Planned: ${new Date(task.plannedDate).toLocaleDateString()}</p>
+                        <p>Target: ${new Date(task.targetDate).toLocaleDateString()}</p>
+                    </div>
+                    ${task.attachments.length > 0 ? `
+                        <div class="mt-3">
+                            <p class="text-sm font-semibold mb-2">Attachments:</p>
+                            <div class="space-y-1">
+                                ${task.attachments.map(att => `
+                                    <div class="flex items-center justify-between text-sm">
+                                        <span class="truncate">${att.name}</span>
+                                        <a href="${att.url}" download class="text-blue-600 hover:text-blue-800">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+                
+                tasksList.appendChild(taskCard);
+            });
+        }
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
